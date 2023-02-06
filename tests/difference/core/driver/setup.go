@@ -36,6 +36,7 @@ import (
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+
 	appConsumer "github.com/cosmos/interchain-security/app/consumer"
 	appProvider "github.com/cosmos/interchain-security/app/provider"
 	icstestingutils "github.com/cosmos/interchain-security/testutil/ibc_testing"
@@ -258,6 +259,7 @@ func (b *Builder) newChain(coord *ibctesting.Coordinator, appInit ibctesting.App
 
 	app.InitChain(
 		abci.RequestInitChain{
+			Time:            time.Now(),
 			ChainId:         chainID,
 			Validators:      []abci.ValidatorUpdate{},
 			ConsensusParams: initState.ConsensusParams,
@@ -480,6 +482,7 @@ func (b *Builder) createConsumerGenesis(tmConfig *ibctesting.TendermintConfig) *
 		consumertypes.DefaultConsumerRedistributeFrac,
 		consumertypes.DefaultHistoricalEntries,
 		consumertypes.DefaultConsumerUnbondingPeriod,
+		consumertypes.DefaultMaxTimeWithoutVSCPacket,
 	)
 	return consumertypes.NewInitialGenesisState(providerClient, providerConsState, valUpdates, params)
 }
