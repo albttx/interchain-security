@@ -85,6 +85,8 @@ func (s *CCVTestSuite) TestConsumerPacketSendExpiredClient() {
 	providerKeeper := s.providerApp.GetProviderKeeper()
 	consumerKeeper := s.consumerApp.GetConsumerKeeper()
 
+	// consumerKeeper.SetLatestTimeVscPaket(s.consumerCtx(), time.Hour*24*30)
+
 	s.SetupCCVChannel(s.path)
 
 	// bond some tokens on provider to change validator powers

@@ -160,6 +160,23 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 		panic(channelClosedMsg)
 	}
 
+	latestValsetUpdated := am.keeper.GetLatestTimeVscPaket(ctx)
+	if latestValsetUpdated.IsZero() {
+		// This should never occurs since a time should always be set
+		panic("latest block time an IBC VCS packet is empty")
+	}
+
+	maxTimeWithoutVCSPacket := am.keeper.GetParams(ctx).MaxTimeWithoutVscPacket
+
+	if ctx.BlockTime().Sub(latestValsetUpdated) >= maxTimeWithoutVCSPacket {
+		fmt.Printf("[DEBUG] ctx.BlockTime()    : %v\n", ctx.BlockTime())
+		fmt.Printf("[DEBUG] latestValsetUpdated: %v\n", latestValsetUpdated)
+
+		chainMaxTimeWithoutVCSPacketMsg := fmt.Sprintf("chain hasn't received any VSC packet since over %v hours - shutdown consumer chain since it is not secured", maxTimeWithoutVCSPacket.Hours())
+		am.keeper.Logger(ctx).Error(chainMaxTimeWithoutVCSPacketMsg)
+		panic(chainMaxTimeWithoutVCSPacketMsg)
+	}
+
 	// map next block height to the vscID of the current block height
 	blockHeight := uint64(ctx.BlockHeight())
 	vID := am.keeper.GetHeightValsetUpdateID(ctx, blockHeight)

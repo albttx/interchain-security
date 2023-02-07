@@ -1,6 +1,8 @@
 package e2e
 
 // TestInitTimeout tests the init timeout
+// Since the add of IBC expiration on `MaxTimeWithoutVCSPacket`
+// All those tests should panic because `MaxTimeWithoutVCSPacket < InitTimeoutPeriod`
 func (suite *CCVTestSuite) TestInitTimeout() {
 	testCases := []struct {
 		name      string
@@ -59,38 +61,41 @@ func (suite *CCVTestSuite) TestInitTimeout() {
 	}
 
 	for i, tc := range testCases {
-		providerKeeper := suite.providerApp.GetProviderKeeper()
-		initTimeout := providerKeeper.GetParams(suite.providerCtx()).InitTimeoutPeriod
-		chainID := suite.consumerChain.ChainID
+		suite.Run(tc.name, func() {
+			providerKeeper := suite.providerApp.GetProviderKeeper()
+			initTimeout := providerKeeper.GetParams(suite.providerCtx()).InitTimeoutPeriod
+			chainID := suite.consumerChain.ChainID
 
-		// check that the init timeout timestamp is set
-		_, found := providerKeeper.GetInitTimeoutTimestamp(suite.providerCtx(), chainID)
-		suite.Require().True(found, "cannot find init timeout timestamp; test: %s", tc.name)
+			// check that the init timeout timestamp is set
+			_, found := providerKeeper.GetInitTimeoutTimestamp(suite.providerCtx(), chainID)
+			suite.Require().True(found, "cannot find init timeout timestamp")
 
-		// create connection
-		suite.coordinator.CreateConnections(suite.path)
+			// create connection
+			suite.coordinator.CreateConnections(suite.path)
 
-		// channel opening handshake
-		tc.handshake()
+			// channel opening handshake
+			tc.handshake()
 
-		// call NextBlock
-		suite.providerChain.NextBlock()
+			// call NextBlock
+			suite.providerChain.NextBlock()
 
-		// increment time
-		incrementTime(suite, initTimeout)
+			// increment time
+			incrementTime(suite, initTimeout)
 
-		// check whether the chain was removed
-		_, found = providerKeeper.GetConsumerClientId(suite.providerCtx(), chainID)
-		suite.Require().Equal(!tc.removed, found, "unexpected outcome; test: %s", tc.name)
+			// check whether the chain was removed
+			_, found = providerKeeper.GetConsumerClientId(suite.providerCtx(), chainID)
+			suite.Require().Equal(!tc.removed, found, "unexpected outcome")
 
-		if tc.removed {
-			// check if the chain was properly removed
-			suite.checkConsumerChainIsRemoved(chainID, false)
-		}
+			if tc.removed {
+				// check if the chain was properly removed
+				suite.checkConsumerChainIsRemoved(chainID, false)
+			}
+		})
 
 		if i+1 < len(testCases) {
 			// reset suite to reset provider client
 			suite.SetupTest()
 		}
+
 	}
 }
